@@ -1,37 +1,33 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"os"
+	"backend/internal/app/services"
+	"backend/internal/infrastructure/config"
+	"backend/internal/infrastructure/postgres"
+	postgresuser "backend/internal/infrastructure/postgres/postgres_user"
+	"backend/internal/interfaces/api/rest"
+	"log"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		fmt.Println("DATABASE_URL is not set")
-		return
+
+	cfg := config.NewConfig()
+
+	db, _ := postgres.NewConnection(cfg.DatabaseURL)
+
+	if err := postgres.Migrate(db); err != nil {
+		log.Fatalf("%v", err)
 	}
 
-	r := chi.NewRouter()
+	userRepo := postgresuser.NewGormUserRepository(db)
 
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
+	userService := services.NewUserService(userRepo)
 
-	r.Get("/api/hello", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+	e := echo.New()
 
-		response := map[string]string{
-			"message": "There Will Be App",
-		}
+	rest.NewUserController(e, userService)
 
-		json.NewEncoder(w).Encode(response)
-	})
-
-	fmt.Println("Server starting on :8080")
-	http.ListenAndServe(":8080", r)
+	e.Logger.Fatal(e.Start(":8080"))
 }

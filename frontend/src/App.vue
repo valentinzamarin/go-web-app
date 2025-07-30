@@ -24,7 +24,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <h1 class="text-3xl font-bold underline">
     {{ message }}
-  </div>
+  </h1>
+  <nav>
+    <RouterLink to="/">FrontPage</RouterLink>
+  </nav>
+  <main>
+    <RouterView />
+  </main>
 </template>
